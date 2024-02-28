@@ -4,8 +4,6 @@ import { Router } from '@angular/router';
 import { User } from 'src/app/models/user.model';
 import { CryptoService } from 'src/app/services/crypto.service';
 import { UserService } from 'src/app/services/user.service';
-import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { multi } from './data';
 
 @Component({
   selector: 'app-main-panel',
@@ -19,31 +17,21 @@ export class MainPanelComponent {
   exchangeRate: number | null = null;
   exchangeResult: number = 0;
   isReversed: boolean = false;
+  historicalData: any[] = [];
 
-  constructor(
-    private router: Router,
-    private userService: UserService,
-    private cryptoService: CryptoService
-  ) {
-    Object.assign(this, { multi });
-  }
-
-  ngOnInit(): void {
-    this.loadCryptoData(0);
-  }
-
-  multi: any;
+  // CHART VARIABLES
+  multi: any[] = [];
   view: any = [700, 400];
 
-  // options
+  // CHART OPTIONS
   showLabels: boolean = true;
-  animations: boolean = true;
+  animations: boolean = false;
   xAxis: boolean = true;
   yAxis: boolean = true;
   showYAxisLabel: boolean = true;
   showXAxisLabel: boolean = true;
   xAxisLabel: string = 'Days';
-  yAxisLabel: string = `USD / ${this.selectedCrypto}`;
+  yAxisLabel: string = 'Cost in USD';
   timeline: boolean = true;
 
   colorScheme: any = {
@@ -59,13 +47,28 @@ export class MainPanelComponent {
     selectCrypto: new FormControl(),
   });
 
+  //------------------------------------------------
+
+  constructor(
+    private router: Router,
+    private userService: UserService,
+    private cryptoService: CryptoService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadCryptoData(0);
+  }
+
   loadCryptoData(index: number) {
     this.selectedCrypto = this.currentUser?.saved[index];
     this.convertForm.get('to')?.setValue(0);
     this.convertForm.get('from')?.setValue(0);
-    this.cryptoService.exchange(this.selectedCrypto!).subscribe((result) => {
-      this.exchangeRate = result.rate;
-    });
+    this.cryptoService
+      .exchange(this.selectedCrypto!)
+      .subscribe((rate: number) => {
+        this.exchangeRate = rate;
+      });
+    this.getHistoricalData();
   }
 
   convert() {
@@ -81,6 +84,40 @@ export class MainPanelComponent {
 
     console.log('convert. rate: ', this.exchangeRate);
   }
+
+  // GET HISTORICAL DATA FROM API
+
+  getHistoricalData() {
+    this.cryptoService
+      .gettingHistoricalData(this.selectedCrypto!)
+      .subscribe((result) => {
+        this.historicalData = result;
+        console.log('historical data:', this.selectedCrypto, result);
+        const dataToShow: any[] = [];
+        this.historicalData.reverse().forEach((data: any) => {
+          const currentDate = new Date(data.time_close);
+
+          const currentDayOfMonth = currentDate.getDate();
+          const currentMonth = currentDate.getMonth();
+          const currentYear = currentDate.getFullYear();
+          const neceseryData = {
+            name: `${currentYear}. ${currentMonth + 1}. ${currentDayOfMonth}.`,
+            value: data.price_close,
+          };
+          dataToShow.push(neceseryData);
+        });
+
+        this.multi = [
+          {
+            name: 'Cost',
+            series: dataToShow,
+          },
+        ];
+        console.log('multi', this.multi);
+      });
+  }
+
+  // REVERSE CURRENCY CHANGE
 
   reverse() {
     this.isReversed = !this.isReversed;
