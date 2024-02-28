@@ -1,0 +1,5 @@
+export interface CryptoModel {
+  time: string;
+  asset_id_quote: string;
+  rate: number;
+}

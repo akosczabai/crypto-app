@@ -1,0 +1,22 @@
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  &-form {
+    background-color: #3e0097;
+    min-width: 700px;
+    min-height: 500px;
+    border-radius: 15px;
+    padding: 4em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    form {
+      input {
+        display: block;
+      }
+    }
+  }
+}

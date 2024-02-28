@@ -1,0 +1,94 @@
+<div class="chart-container">
+  <div class="your-list container">
+    <ul class="container">
+      <li
+        *ngFor="let crypto of currentUser!.saved; index as i"
+        (click)="loadCryptoData(i)"
+        [ngClass]="crypto === selectedCrypto ? 'selected' : ''"
+      >
+        {{ crypto }}
+      </li>
+      <li (click)="togglePopup()">+</li>
+    </ul>
+  </div>
+  <div *ngIf="(currentUser?.saved)!.length > 0" class="data-container">
+    <div class="delete-crypto" (click)="deleteCrypto()">
+      <span>DELETE CRYPTO</span>
+    </div>
+    <h2>{{ selectedCrypto }}</h2>
+    <p>Current Rate: {{ exchangeRate }}</p>
+    <div class="convert container">
+      <form class="col-4" [formGroup]="convertForm" (ngSubmit)="convert()">
+        <div class="mb-3">
+          <label for="from" class="form-label">{{
+            isReversed ? selectedCrypto : "USD"
+          }}</label>
+          <input
+            type="number"
+            class="form-control"
+            id="from"
+            formControlName="from"
+            (click)="selectInputContent($event)"
+          />
+        </div>
+        <span (click)="reverse()">⇅</span>
+        <div class="mb-3">
+          <label for="currency-2" class="form-label">{{
+            isReversed ? "USD" : selectedCrypto
+          }}</label>
+          <input
+            type="number"
+            class="form-control"
+            id="to"
+            formControlName="to"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">CONVERT</button>
+      </form>
+    </div>
+    <div class="chart">
+      <ngx-charts-line-chart
+        [view]="view"
+        [scheme]="colorScheme"
+        [showXAxisLabel]="showXAxisLabel"
+        [showYAxisLabel]="showYAxisLabel"
+        [xAxis]="xAxis"
+        [yAxis]="yAxis"
+        [xAxisLabel]="xAxisLabel"
+        [yAxisLabel]="yAxisLabel"
+        [timeline]="timeline"
+        [results]="multi"
+      >
+      </ngx-charts-line-chart>
+    </div>
+  </div>
+  <div class="adding-popup shadow" *ngIf="isPopupOpened === true">
+    <h2>ADDING CRYPTO</h2>
+    <form [formGroup]="addCryptoForm" (ngSubmit)="addCrypto()">
+      <select
+        name="selectCrypto"
+        id="selectCrypto"
+        formControlName="selectCrypto"
+      >
+        <option value="BTC">Bitcoin</option>
+        <option value="DASH">Dash</option>
+        <option value="ETH">Ethereum</option>
+        <option value="PEPE">Pepecoin</option>
+        <option value="DOGE">Dogecoin</option>
+        <option value="DOT">Polkadot</option>
+        <option value="FIL">Filecoin</option>
+        <option value="WAXL">Axelar</option>
+        <option value="BCH">Bitcoin Cash</option>
+      </select>
+      <button type="submit" class="btn btn-primary">ADD</button>
+    </form>
+    <div class="close" (click)="togglePopup()">X</div>
+  </div>
+  <div *ngIf="(currentUser?.saved)!.length === 0" class="data-container">
+    <h2>Here you will see the stats of a selected cryptocurrency.</h2>
+    <p>
+      Add some cryptocurrencies to your watchlist by clicking to the
+      <span class="border rounded px-2 py-1">+</span> icon
+    </p>
+  </div>
+</div>
