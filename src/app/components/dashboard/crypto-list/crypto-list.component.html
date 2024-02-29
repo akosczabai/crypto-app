@@ -1,8 +1,12 @@
 <div class="crypto-list-container">
   <ul>
-    <li *ngFor="let crypto of cryptoList">
-      <span class="crypto-name">{{ crypto }}</span>
-      <span class="crypto-status text-danger">LOW</span>
+    <li *ngFor="let crypto of listedCryptos">
+      <span class="crypto-name">{{ crypto.name }}</span>
+      <div class="currentPrice">
+        <span class="crypto-status text-success">↑ {{ crypto.high }}</span>
+        <span class="crypto-status text-danger">↓ {{ crypto.low }}</span>
+      </div>
     </li>
   </ul>
+  <div class="btn btn-primary" (click)="close()">close socket</div>
 </div>

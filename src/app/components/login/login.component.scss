@@ -6,8 +6,8 @@
   align-items: center;
   &-form {
     background-color: #3e0097;
-    min-width: 700px;
-    min-height: 500px;
+    max-width: 500px;
+    width: 100%;
     border-radius: 15px;
     padding: 4em;
     display: flex;

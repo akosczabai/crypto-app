@@ -1,5 +1,5 @@
-<div class="login-container container-fluid d-flex">
-  <div class="login-container-form conatiner">
+<div class="login-container container d-flex">
+  <div class="login-container-form conatiner-lg">
     <form [formGroup]="loginForm" (ngSubmit)="login()">
       <label for="username">USERNAME: </label>
       <input id="username" type="text" formControlName="username" />
@@ -8,7 +8,9 @@
 
       <label for="password">PASSWORD: </label>
       <input id="password" type="password" formControlName="password" />
-
+      <span *ngIf="this.errorMessage" class="text-danger pt-2 d-block"
+        >Wrong password!</span
+      >
       <br />
 
       <button type="submit">Submit</button>

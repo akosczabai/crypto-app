@@ -1,3 +1,4 @@
+import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { User } from '../models/user.model';
 import { Router } from '@angular/router';
@@ -6,52 +7,84 @@ import { Router } from '@angular/router';
   providedIn: 'root',
 })
 export class UserService {
+  private akos = { username: 'akos', password: 'asd', saved: ['BTC', 'ETH'] };
   loggedInStatus = true; // change after done
-  currentUser: User | null = {
-    username: 'akos',
-    password: 'asd',
-    saved: ['BTC', 'ETH'],
-  }; // cahnge after done
+  currentUser: User | null = this.akos; // cahnge after done
 
-  private db = {
-    users: [
-      {
-        username: 'akos',
-        password: 'asd',
-        saved: ['BTC', 'ETH'],
-      },
-    ],
-  };
+  // Name of local storage DB
+  private storageKey = 'myUserData';
 
   constructor(private router: Router) {}
 
-  login(username: string, password: string) {
-    console.log('request megérkezett');
+  private getUsersFromStorage(): {
+    [key: string]: { password: string; saved: string[] };
+  } {
+    const storedData = localStorage.getItem(this.storageKey);
+    return storedData ? JSON.parse(storedData) : {};
+  }
 
-    const userIndex = this.db.users.findIndex((user) => {
-      return user.username === username;
-    });
+  private saveUsersToStorage(users: {
+    [key: string]: { password: string; saved: string[] };
+  }): void {
+    localStorage.setItem(this.storageKey, JSON.stringify(users));
+  }
 
-    if (userIndex !== -1 && this.db.users[userIndex].password === password) {
-      console.log(this.db.users[userIndex]);
+  addUser(user: { username: string; password: string; saved: string[] }) {
+    const storedData = localStorage.getItem(this.storageKey);
 
-      this.loggedInStatus = true;
-      this.currentUser = this.db.users[userIndex];
-      this.router.navigate(['dashboard']);
+    let users: { [key: string]: { password: string; saved: string[] } } = {};
+
+    if (storedData) {
+      users = JSON.parse(storedData);
     }
-    // else if (userToLogIn && userToLogIn.password === !password) {
-    //   this.db;
-    // }
-    else {
-      const newUser: User = {
-        username: username,
-        password: password,
+
+    users[user.username] = { password: user.password, saved: user.saved };
+
+    localStorage.setItem(this.storageKey, JSON.stringify(users));
+  }
+
+  getUser(username: string): { saved: string[] } | undefined {
+    const storedData = localStorage.getItem(this.storageKey);
+
+    if (storedData) {
+      const users: { [key: string]: { saved: string[] } } =
+        JSON.parse(storedData);
+      return users[username];
+    }
+    return undefined;
+  }
+
+  private errorMessageSubject = new Subject<string | undefined>();
+  errorMessage$: Observable<string | undefined> =
+    this.errorMessageSubject.asObservable();
+
+  setErrorMessage(message: string | undefined): void {
+    this.errorMessageSubject.next(message);
+  }
+
+  login(username: string, password: string) {
+    const users = this.getUsersFromStorage();
+    const user = users[username];
+    this.setErrorMessage(undefined);
+    if (user) {
+      if (user.password === password) {
+        this.loggedInStatus = true;
+        this.currentUser = { username, password, saved: user.saved };
+        this.router.navigate(['dashboard']);
+      } else {
+        this.setErrorMessage('Wrong password!');
+      }
+    } else {
+      const newUser: { password: string; saved: string[] } = {
+        password,
         saved: [],
       };
-      console.log('új felhasználó: ', newUser);
-      this.db.users.push(newUser);
+
+      users[username] = newUser;
+      this.saveUsersToStorage(users);
+
       this.loggedInStatus = true;
-      this.currentUser = newUser;
+      this.currentUser = { username, password, saved: newUser.saved };
       this.router.navigate(['dashboard']);
     }
   }

@@ -1,6 +1,6 @@
 <div class="chart-container">
-  <div class="your-list container">
-    <ul class="container">
+  <div class="your-list container-lg">
+    <ul class="container-lg">
       <li
         *ngFor="let crypto of currentUser!.saved; index as i"
         (click)="loadCryptoData(i)"
@@ -57,7 +57,10 @@
         [xAxisLabel]="xAxisLabel"
         [yAxisLabel]="yAxisLabel"
         [timeline]="timeline"
+        [autoScale]="autoScale"
         [results]="multi"
+        [animations]="animations"
+        style="fill: white"
       >
       </ngx-charts-line-chart>
     </div>
@@ -70,15 +73,9 @@
         id="selectCrypto"
         formControlName="selectCrypto"
       >
-        <option value="BTC">Bitcoin</option>
-        <option value="DASH">Dash</option>
-        <option value="ETH">Ethereum</option>
-        <option value="PEPE">Pepecoin</option>
-        <option value="DOGE">Dogecoin</option>
-        <option value="DOT">Polkadot</option>
-        <option value="FIL">Filecoin</option>
-        <option value="WAXL">Axelar</option>
-        <option value="BCH">Bitcoin Cash</option>
+        <option *ngFor="let cripto of allCrypto" [value]="cripto">
+          {{ cripto }}
+        </option>
       </select>
       <button type="submit" class="btn btn-primary">ADD</button>
     </form>
