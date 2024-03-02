@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, of, tap } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { User } from '../models/user.model';
 import { Router } from '@angular/router';
@@ -7,15 +7,21 @@ import { Router } from '@angular/router';
   providedIn: 'root',
 })
 export class UserService {
-  private akos = { username: 'akos', password: 'asd', saved: ['BTC', 'ETH'] };
-  loggedInStatus = true; // change after done
-  currentUser: User | null = this.akos; // cahnge after done
+  loggedInStatus = false;
+  currentUser: User | null = null;
+
+  // Current user as a BehaviorSubject
+  private currentUserSubject: BehaviorSubject<User | null> =
+    new BehaviorSubject<User | null>(this.currentUser);
+  currentUser$: Observable<User | null> =
+    this.currentUserSubject.asObservable();
 
   // Name of local storage DB
   private storageKey = 'myUserData';
 
   constructor(private router: Router) {}
 
+  //Getting all user fromn DB
   private getUsersFromStorage(): {
     [key: string]: { password: string; saved: string[] };
   } {
@@ -23,6 +29,7 @@ export class UserService {
     return storedData ? JSON.parse(storedData) : {};
   }
 
+  // Save User to DB
   private saveUsersToStorage(users: {
     [key: string]: { password: string; saved: string[] };
   }): void {
@@ -40,9 +47,15 @@ export class UserService {
 
     users[user.username] = { password: user.password, saved: user.saved };
 
+    // Adding my own user defaultly
+    if (!users['akos']) {
+      users['akos'] = { password: 'asd', saved: ['BTC', 'ETH'] };
+    }
+
     localStorage.setItem(this.storageKey, JSON.stringify(users));
   }
 
+  // Getting logged in user
   getUser(username: string): { saved: string[] } | undefined {
     const storedData = localStorage.getItem(this.storageKey);
 
@@ -54,6 +67,22 @@ export class UserService {
     return undefined;
   }
 
+  // Update user
+  updateUser(user: User) {
+    this.currentUserSubject.next(user);
+
+    const storedData = localStorage.getItem(this.storageKey);
+    let users: { [key: string]: { password: string; saved: string[] } } = {};
+
+    if (storedData) {
+      users = JSON.parse(storedData);
+    }
+
+    users[user.username] = { password: user.password, saved: user.saved };
+    localStorage.setItem(this.storageKey, JSON.stringify(users));
+  }
+
+  // Setting up error message for wrong password
   private errorMessageSubject = new Subject<string | undefined>();
   errorMessage$: Observable<string | undefined> =
     this.errorMessageSubject.asObservable();
@@ -62,6 +91,7 @@ export class UserService {
     this.errorMessageSubject.next(message);
   }
 
+  // Login
   login(username: string, password: string) {
     const users = this.getUsersFromStorage();
     const user = users[username];
@@ -70,22 +100,28 @@ export class UserService {
       if (user.password === password) {
         this.loggedInStatus = true;
         this.currentUser = { username, password, saved: user.saved };
+        this.currentUserSubject.next(this.currentUser);
         this.router.navigate(['dashboard']);
       } else {
+        // Wrong password
         this.setErrorMessage('Wrong password!');
       }
     } else {
+      //Registrate new empty user
       const newUser: { password: string; saved: string[] } = {
         password,
         saved: [],
       };
 
+      // Navigate to dashboard azter login or registration
       users[username] = newUser;
       this.saveUsersToStorage(users);
 
       this.loggedInStatus = true;
       this.currentUser = { username, password, saved: newUser.saved };
+      this.currentUserSubject.next(this.currentUser);
       this.router.navigate(['dashboard']);
     }
+    // this.currentUser$.pipe(tap((data) => console.log(data))).subscribe();
   }
 }

@@ -15,34 +15,82 @@ import { UserService } from 'src/app/services/user.service';
   styleUrls: ['./crypto-list.component.scss'],
 })
 export class CryptoListComponent implements OnInit, OnChanges, OnDestroy {
-  cryptoList = this.userService.currentUser?.saved;
+  cryptoList: string[] | undefined = undefined;
   listedCryptos: { name: string; high?: number; low?: number }[] = [];
 
-  gettingCryptoData() {
-    this.cryptoList?.forEach((crypto) => {
-      this.listedCryptos.push({
-        name: crypto /*high: 234235235, low: 1233124*/,
-      }); // <- dummy data. high és low
+  constructor(
+    private cryptoService: CryptoService,
+    private userService: UserService
+  ) {}
+
+  ngOnInit(): void {
+    this.userService.currentUser$.subscribe((user) => {
+      this.cryptoList = user?.saved;
+
+      this.listedCryptos =
+        this.cryptoList?.map((crypto) => ({ name: crypto })) || [];
+
+      this.listedCryptos.forEach((crypto) => {
+        this.cryptoService
+          .gettingCurrentData(crypto.name)
+          .subscribe((currentData: any) => {
+            crypto.high = currentData.price_high;
+            crypto.low = currentData.price_low;
+          });
+      });
     });
 
+    this.cryptoService.gettingWebSocketData(this.cryptoList!);
+    this.gettingCryptoData();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    this.gettingCryptoData();
+  }
+
+  ngOnDestroy(): void {
+    this.close();
+  }
+
+  // Getting HIGH and LOW values from WebSocket
+  gettingCryptoData() {
     this.cryptoService.socket$
       .pipe(
         map((message) => {
+          console.log(message);
           const name = message.symbol_id
             .replace('BITSTAMP_SPOT_', '')
             .replace('_USD', '');
-          const high = message.price_high;
-          const low = message.price_low;
+          let high = message.price_high;
+          let low = message.price_low;
+
+          // Getting latest data to show at first time
+          this.cryptoService.gettingCurrentData(name).subscribe({
+            next: (data: any) => {
+              high = data.price_high;
+              low = data.price_low;
+            },
+            error: (err) => console.log(err),
+          });
           return { name: name, high: high, low: low };
         })
       )
+      // Subscribe to WebSocket
       .subscribe(
         (message) => {
           const changeData = this.listedCryptos.find(
             (crypto) => crypto.name === message.name
           );
-          changeData!.high = message.high;
-          changeData!.low = message.low;
+          if (!changeData) {
+            this.listedCryptos.push({
+              name: message.name,
+              high: message.high,
+              low: message.low,
+            });
+          } else {
+            changeData!.high = message.high;
+            changeData!.low = message.low;
+          }
         },
         (error) => {
           console.log('Websocket error:', error);
@@ -53,24 +101,7 @@ export class CryptoListComponent implements OnInit, OnChanges, OnDestroy {
       );
   }
 
-  constructor(
-    private cryptoService: CryptoService,
-    private userService: UserService
-  ) {}
-
-  ngOnInit(): void {
-    this.cryptoService.gettingWebSocketData(this.cryptoList!);
-    this.gettingCryptoData();
-    // this.cryptoService.closeSocket();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    this.gettingCryptoData();
-  }
-
-  ngOnDestroy(): void {
-    this.close();
-  }
+  // Close WebSocket
   close() {
     this.cryptoService.closeSocket();
   }

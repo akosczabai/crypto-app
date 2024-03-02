@@ -2,9 +2,9 @@
   <div class="your-list container-lg">
     <ul class="container-lg">
       <li
-        *ngFor="let crypto of currentUser!.saved; index as i"
-        (click)="loadCryptoData(i)"
-        [ngClass]="crypto === selectedCrypto ? 'selected' : ''"
+        *ngFor="let crypto of allSavedCryptoNames; index as i"
+        [ngClass]="crypto === currentCrypto?.name ? 'selected' : ''"
+        (click)="setCurrentCrypto(i)"
       >
         {{ crypto }}
       </li>
@@ -15,40 +15,55 @@
     <div class="delete-crypto" (click)="deleteCrypto()">
       <span>DELETE CRYPTO</span>
     </div>
-    <h2>{{ selectedCrypto }}</h2>
-    <p>Current Rate: {{ exchangeRate }}</p>
-    <div class="convert container">
+    <h2>{{ currentCryptoName }}</h2>
+    <p>Current Rate: {{ currentExchangeRate }}</p>
+    <div class="convert container-lg">
       <form class="col-4" [formGroup]="convertForm" (ngSubmit)="convert()">
-        <div class="mb-3">
-          <label for="from" class="form-label">{{
-            isReversed ? selectedCrypto : "USD"
-          }}</label>
-          <input
-            type="number"
-            class="form-control"
-            id="from"
-            formControlName="from"
-            (click)="selectInputContent($event)"
-          />
+        <div class="mb-3 flex-lg-row">
+          <div>
+            <label for="from" class="form-label">{{
+              isReversed ? currentCryptoName : "USD"
+            }}</label>
+            <input
+              type="number"
+              class="form-control"
+              id="from"
+              formControlName="from"
+              (click)="selectInputContent($event)"
+            />
+          </div>
+
+          <div>
+            <span
+              (click)="reverse()"
+              class="d-lg-block d-none"
+              style="transform: rotate(90deg)"
+              >⇅</span
+            >
+            <span
+              (click)="reverse()"
+              class="d-lg-none d-block my-3 mx-0"
+              style="transform: rotate(0)"
+              >⇅</span
+            >
+          </div>
+          <div>
+            <label for="currency-2" class="form-label">{{
+              isReversed ? "USD" : currentCryptoName
+            }}</label>
+            <input
+              type="number"
+              class="form-control"
+              id="to"
+              formControlName="to"
+            />
+          </div>
         </div>
-        <span (click)="reverse()">⇅</span>
-        <div class="mb-3">
-          <label for="currency-2" class="form-label">{{
-            isReversed ? "USD" : selectedCrypto
-          }}</label>
-          <input
-            type="number"
-            class="form-control"
-            id="to"
-            formControlName="to"
-          />
-        </div>
-        <button type="submit" class="btn btn-primary">CONVERT</button>
+        <button type="submit" class="btn">CONVERT</button>
       </form>
     </div>
     <div class="chart">
       <ngx-charts-line-chart
-        [view]="view"
         [scheme]="colorScheme"
         [showXAxisLabel]="showXAxisLabel"
         [showYAxisLabel]="showYAxisLabel"
@@ -58,7 +73,7 @@
         [yAxisLabel]="yAxisLabel"
         [timeline]="timeline"
         [autoScale]="autoScale"
-        [results]="multi"
+        [results]="chartData"
         [animations]="animations"
         style="fill: white"
       >
@@ -73,8 +88,8 @@
         id="selectCrypto"
         formControlName="selectCrypto"
       >
-        <option *ngFor="let cripto of allCrypto" [value]="cripto">
-          {{ cripto }}
+        <option *ngFor="let crypto of allCrypto" [value]="crypto">
+          {{ crypto }}
         </option>
       </select>
       <button type="submit" class="btn btn-primary">ADD</button>

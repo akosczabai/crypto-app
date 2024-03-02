@@ -32,6 +32,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     password: new FormControl(''),
   });
 
+  // Login
   login() {
     const username = this.loginForm.get('username')?.value;
     const password = this.loginForm.get('password')?.value;

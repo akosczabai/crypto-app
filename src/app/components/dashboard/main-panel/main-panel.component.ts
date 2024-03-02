@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { User } from 'src/app/models/user.model';
 import { CryptoService } from 'src/app/services/crypto.service';
 import { UserService } from 'src/app/services/user.service';
-import { Observable, Subscription, filter, map } from 'rxjs';
+import { CryptoModel } from 'src/app/models/crypto.model';
+import { CryptoHistoryModel } from 'src/app/models/cryptoHistory.model';
 
 @Component({
   selector: 'app-main-panel',
@@ -12,18 +13,9 @@ import { Observable, Subscription, filter, map } from 'rxjs';
   styleUrls: ['./main-panel.component.scss'],
 })
 export class MainPanelComponent implements OnInit, OnDestroy {
-  isPopupOpened: boolean = false;
-  currentUser: User | null = this.userService.currentUser;
-  selectedCrypto?: string = '';
-  exchangeRate: number | null = null;
-  exchangeResult: number = 0;
-  isReversed: boolean = false;
-  historicalData: any[] = [];
+  // ------------------ CHART VARIABLES----------------
 
-  // CHART VARIABLES
-  multi: any[] = [];
   view: any = [];
-
   // CHART OPTIONS
   showLabels: boolean = true;
   animations: boolean = false;
@@ -39,6 +31,7 @@ export class MainPanelComponent implements OnInit, OnDestroy {
   colorScheme: any = {
     domain: ['#12E1FC'],
   };
+  //------------------------------------------------
 
   convertForm = new FormGroup({
     from: new FormControl(0),
@@ -49,7 +42,20 @@ export class MainPanelComponent implements OnInit, OnDestroy {
     selectCrypto: new FormControl(),
   });
 
-  //------------------------------------------------
+  //-------------------------------------------------------
+
+  currentUser: User | null = null;
+  allSavedCryptos: CryptoModel[] = [];
+  allSavedCryptoNames: string[] = [];
+  currentCrypto: CryptoModel | null | undefined = null;
+  currentCryptoName: string = '';
+  currentExchangeRate: number = 0;
+  currentHistoricalData: CryptoHistoryModel[] = [];
+  exchangeResult: number = 0;
+  chartData: any[] = [];
+  isReversed: boolean = false;
+  isPopupOpened: boolean = false;
+  allCrypto: string[] = [];
 
   constructor(
     private router: Router,
@@ -58,111 +64,126 @@ export class MainPanelComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loadCryptoData(0);
+    this.userService.currentUser$.subscribe((user) => {
+      this.currentUser = user;
+    });
     this.fetchAllCrypto();
+    this.getUserData();
+
+    if (this.allSavedCryptoNames.length > 0) {
+      this.setCurrentCrypto(0);
+    }
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    this.currentUser = null;
+    this.allSavedCryptos = [];
+    this.allSavedCryptoNames = [];
+    this.currentCrypto = null;
+    this.currentCryptoName = '';
+    this.currentExchangeRate = 0;
+    this.currentHistoricalData = [];
+    this.exchangeResult = 0;
+    this.chartData = [];
+    this.isReversed = false;
+    this.isPopupOpened = false;
+    this.allCrypto = [];
+  }
 
-  loadCryptoData(index: number) {
-    this.selectedCrypto = this.currentUser?.saved[index];
-    this.convertForm.get('to')?.setValue(0);
-    this.convertForm.get('from')?.setValue(0);
-    //this.exchangeRate = 1.5; // <- csak dummy adat - eltávolítani
+  //Selecting a crypto to display data on dashboard
+  setCurrentCrypto(id: number) {
+    this.currentCryptoName = this.allSavedCryptoNames[id];
+    this.currentCrypto = this.allSavedCryptos.find(
+      (crypto) => crypto.name === this.currentCryptoName
+    );
+    this.currentExchangeRate = this.currentCrypto!.rate;
+    this.getDataForCharts();
+  }
+
+  //Getting fresh data about the logged in user
+  getUserData() {
+    this.allSavedCryptoNames = this.currentUser?.saved!;
+
+    //getting all saved cryptos exchange rate
     this.cryptoService
-      .exchange(this.selectedCrypto!)
-      .subscribe((rate: number) => {
-        this.exchangeRate = rate; //<- tényleges lekért érték
+      .exchange(this.allSavedCryptoNames!)
+      .subscribe((exchangeData) => {
+        if (exchangeData && exchangeData.rates) {
+          exchangeData.rates.forEach((crypto) => {
+            if (crypto && crypto.asset_id_quote && crypto.rate) {
+              this.allSavedCryptos.push({
+                name: crypto.asset_id_quote,
+                rate: crypto.rate,
+              });
+            }
+          });
+
+          this.setCurrentCrypto(0);
+        }
       });
-    this.getHistoricalData();
   }
 
+  // Getting Chart data
+  getDataForCharts() {
+    if (this.currentCrypto?.historicalData === undefined) {
+      this.cryptoService
+        .gettingHistoricalData(this.currentCrypto!.name)
+        .subscribe((data) => {
+          const dataToShow: CryptoHistoryModel[] = [];
+          data.reverse().forEach((record: any) => {
+            const currentDate = new Date(record.time_close);
+
+            const currentDayOfMonth = currentDate.getDate();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            const neceseryData = {
+              name: `${currentYear}. ${
+                currentMonth + 1
+              }. ${currentDayOfMonth}.`,
+              value: record.price_close,
+            };
+
+            dataToShow.push(neceseryData);
+          });
+
+          this.chartData = [
+            {
+              name: 'Cost',
+              series: dataToShow,
+            },
+          ];
+
+          const foundCrypto = this.allSavedCryptos.find((crypto) => {
+            return crypto.name === this.currentCryptoName;
+          });
+
+          if (foundCrypto) {
+            foundCrypto.historicalData = this.chartData;
+            this.currentHistoricalData = this.chartData;
+          } else {
+            console.error('Crypto not found');
+          }
+        });
+    } else {
+      this.currentHistoricalData = this.currentCrypto!.historicalData;
+      this.chartData = this.currentHistoricalData;
+    }
+  }
+
+  // Currency converting method
   convert() {
     const amount = this.convertForm.get('from')?.value;
 
-    if (this.isReversed === false) {
-      this.exchangeResult = Number(amount) / this.exchangeRate!;
+    if (this.isReversed === true) {
+      this.exchangeResult = Number(amount) / this.currentExchangeRate;
       this.convertForm.get('to')?.setValue(this.exchangeResult);
     } else {
-      this.exchangeResult = Number(amount) * this.exchangeRate!;
+      this.exchangeResult = Number(amount) * this.currentExchangeRate!;
       this.convertForm.get('to')?.setValue(this.exchangeResult);
     }
-
-    // console.log('convert. rate: ', this.exchangeRate);
   }
 
-  // GET HISTORICAL DATA FROM API
-
-  getHistoricalData() {
-    this.cryptoService
-      .gettingHistoricalData(this.selectedCrypto!)
-      .subscribe((result) => {
-        this.historicalData = result;
-        // console.log('historical data:', this.selectedCrypto, result);
-        const dataToShow: any[] = [];
-        this.historicalData.reverse().forEach((data: any) => {
-          const currentDate = new Date(data.time_close);
-
-          const currentDayOfMonth = currentDate.getDate();
-          const currentMonth = currentDate.getMonth();
-          const currentYear = currentDate.getFullYear();
-          const neceseryData = {
-            name: `${currentYear}. ${currentMonth + 1}. ${currentDayOfMonth}.`,
-            value: data.price_close,
-          };
-          dataToShow.push(neceseryData);
-        });
-
-        this.multi = [
-          {
-            name: 'Cost',
-            series: dataToShow,
-          },
-        ];
-      });
-
-    // --------------------------DUMMY DATA----------------------------
-    // const dataToShow = [
-    //   {
-    //     name: '2024.02.21.',
-    //     value: 1232,
-    //   },
-    //   {
-    //     name: '2024.02.22.',
-    //     value: 1332,
-    //   },
-    //   {
-    //     name: '2024.02.23.',
-    //     value: 1832,
-    //   },
-    //   {
-    //     name: '2024.02.24.',
-    //     value: 732,
-    //   },
-    //   {
-    //     name: '2024.02.25.',
-    //     value: 1243,
-    //   },
-    //   {
-    //     name: '2024.02.26.',
-    //     value: 1342,
-    //   },
-    //   {
-    //     name: '2024.02.27.',
-    //     value: 1032,
-    //   },
-    // ];
-    // this.multi = [
-    //   {
-    //     name: 'Cost',
-    //     series: dataToShow,
-    //   },
-    // ];
-    // --------------------------------------
-  }
-
-  // REVERSE CURRENCY CHANGE
-
+  // Reverse converting
   reverse() {
     this.isReversed = !this.isReversed;
 
@@ -173,49 +194,65 @@ export class MainPanelComponent implements OnInit, OnDestroy {
     this.convert();
   }
 
+  //Getting amount from input field
   selectInputContent(event: FocusEvent) {
     const inputElement = event.target as HTMLInputElement;
     inputElement.select();
   }
 
+  // Open/close popup
   togglePopup() {
     this.isPopupOpened = !this.isPopupOpened;
   }
 
-  allCrypto: string[] = ['ETH', 'BTC', 'PEPE', 'LTC', 'XLR'];
-
+  // Fetching all cryptos from API
   fetchAllCrypto() {
-    this.cryptoService.getAllCrypto().subscribe({
-      next: (cryptoList: string[]) => {
-        // Itt dolgozhatsz az adatokkal, például kiírhatod a konzolra
-        // console.log('Crypto List:', cryptoList);
-        this.allCrypto = cryptoList;
-      },
-      error: (error) => {
-        // Kezeld a hibákat
-        console.error('Error fetching crypto list:', error);
-      },
-      complete: () => {
-        // Itt hajtsd végre a befejező műveleteket, ha szükséges
-      },
-    });
+    if (this.allCrypto.length <= 0) {
+      this.cryptoService.getAllCrypto().subscribe({
+        next: (cryptoList: string[]) => {
+          this.allCrypto = cryptoList;
+        },
+        error: (error) => {
+          console.error('Error fetching crypto list:', error);
+        },
+      });
+    }
   }
 
+  // Adding new crypto to user collection
   addCrypto() {
     const selectedCrypto = this.addCryptoForm.get('selectCrypto')?.value;
-    if (selectedCrypto && !this.currentUser?.saved.includes(selectedCrypto)) {
-      this.currentUser?.saved.push(selectedCrypto);
-      // console.log('Selected Crypto:', selectedCrypto);
+    if (
+      this.currentUser &&
+      selectedCrypto &&
+      !this.currentUser.saved.includes(selectedCrypto)
+    ) {
+      this.currentUser.saved.push(selectedCrypto);
+
+      this.userService.updateUser({
+        ...this.currentUser,
+        saved: [...this.currentUser.saved],
+      });
+
+      this.getUserData();
+
+      this.togglePopup();
     }
-    this.loadCryptoData(this.currentUser?.saved.indexOf(selectedCrypto)!);
-    this.togglePopup();
   }
 
+  // Deleting crypto forom user collection
   deleteCrypto() {
     this.currentUser?.saved.splice(
-      this.currentUser?.saved.indexOf(this.selectedCrypto!),
+      this.currentUser?.saved.indexOf(this.currentCrypto?.name!),
       1
     );
-    this.loadCryptoData(0);
+
+    this.userService.updateUser({
+      ...this.currentUser!,
+      saved: [...this.currentUser!.saved],
+    });
+
+    this.allSavedCryptos = [];
+    this.getUserData();
   }
 }

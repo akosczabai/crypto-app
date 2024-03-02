@@ -17,6 +17,7 @@ export class DashboardComponent implements OnInit {
 
   constructor(private router: Router, private userService: UserService) {}
 
+  // Logout
   logout() {
     this.router.navigate(['']);
     this.currentUser = null;

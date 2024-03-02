@@ -1,5 +1,7 @@
+import { CryptoHistoryModel } from './cryptoHistory.model';
+
 export interface CryptoModel {
-  time: string;
-  asset_id_quote: string;
+  name: string;
   rate: number;
+  historicalData?: CryptoHistoryModel[];
 }
