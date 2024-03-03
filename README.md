@@ -1,27 +1,38 @@
 # CryptoApp
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.2.6.
+This is a crypto currency exchange Angular app created by Ákos Czabai.
 
-## Development server
+## How to use?
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+After downloading run `npm i` to download all dependecies. After the download finished, run `ng s` in terminal to start the application. After this open `http://localhost:4200/` in a browser.
 
-## Code scaffolding
+The application is running on Coinapi API defaultly, but you can run it on Mock API as well.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Running json-server for mock api
 
-## Build
+There is a mock api json-server in the `app/db` folder for developing. To run the mock api server right-click to the `db.json` file an click to `Open in integrated terminal`. In the terminal type in `json-server db.json` command.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+To use the mock api server, you have to change the endpoints in the `services/crypto.service.ts` service file.
 
-## Running unit tests
+Open the file and do the following changes:
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+- Switch the cryptoURL variable to the empty string
+- In the `getAllCrypto()` function switch the endpoint to the localhost one.
+- In the `exchange()` function switch the endpoint to the localhost one.
+- In the `gettingHistoricalData()` function switch the endpoint to the localhost one and comment out the `.pipe` part.
+- In the `gettingCurrentData()` function switch the endpoint to the localhost one
+- Disabling the WebSocket for current exchange rate is not necessary, but you can do that by switch the API key to empty string over the `gettingWebSocketData()` function.
 
-## Running end-to-end tests
+## The UI of the application
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+After you open the application, you will see a log-in screen. If you have an account, you can log in with your username and password. If the username is not existing, then a new account will be created after submitting the form. If the username is exists and the password is wring, then you will get an error message until you type in the correct password.
 
-## Further help
+After you logged in there is the main dashboard. If you don't have any saved cryptocurrencies, then you can click to the `+` icon to add one. In the pop-up window you can select a cryptocurrency and you can add it to yout collection by clicking to `ADD` button.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+In the top row you will see all you currencies in a list and you can see the selected crypto's tab.
+
+In the tab you can exchange the crypto to USD on the current exchange rate. You can reverse the currencies by clicking the `⇄` icon.
+
+On the bottom of the tab there is a daily chart of the closing exchange rates of last week.
+
+On the other tab there is you crypto collections high and low rates of the last minute.

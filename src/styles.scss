@@ -1,21 +1,22 @@
 /* You can add global styles to this file, and also import other style files */
+@import "src/varaiable.scss";
 * {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
   body {
     font-family: "Space grotesk";
-    background-color: #110022;
-    color: white;
+    background-color: $dark-color;
+    color: $text-color;
   }
 }
 
 .btn {
-  background-color: #570aca;
-  color: white;
-  border: 1px solid white;
+  background-color: $main-color;
+  color: $text-color;
+  border: 1px solid $text-color;
   &:hover {
-    color: #110022;
-    background-color: white;
+    color: $dark-color;
+    background-color: $text-color;
   }
 }

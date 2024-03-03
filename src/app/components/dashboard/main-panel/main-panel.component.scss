@@ -1,3 +1,5 @@
+@import "src/varaiable.scss";
+
 .chart-container {
   padding: 1em;
   .your-list {
@@ -10,19 +12,19 @@
         padding: 10px 15px;
         margin: 0 5px;
         border-radius: 10px;
-        background-color: #7f59b6;
+        background-color: $secondary-color;
         cursor: pointer;
         &:hover {
-          background-color: #570aca;
+          background-color: $main-color;
         }
         &.selected {
-          background-color: #570aca;
+          background-color: $main-color;
         }
       }
     }
   }
   .data-container {
-    background-color: #570aca;
+    background-color: $main-color;
     border-radius: 10px;
     padding: 2em;
     position: relative;
@@ -50,7 +52,7 @@
             margin: 0 1em;
             cursor: pointer;
             &:hover {
-              background-color: #7f59b6;
+              background-color: $secondary-color;
             }
           }
         }
@@ -58,14 +60,14 @@
     }
     .chart {
       border-radius: 10px;
-      border: 1px solid #110022;
+      border: 1px solid $dark-color;
       margin-top: 2em;
       max-height: 400px;
       padding-top: 3em;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: white !important;
+      color: $text-color;
     }
     .delete-crypto {
       position: absolute;
@@ -84,10 +86,10 @@
 
   .adding-popup {
     position: relative;
-    background-color: #570aca;
+    background-color: $main-color;
     padding: 2em;
     border-radius: 10px;
-    border: 1px solid #110022;
+    border: 1px solid $dark-color;
     position: fixed;
     top: 50%;
     left: 50%;
